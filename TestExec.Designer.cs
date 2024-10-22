@@ -1,7 +1,7 @@
 ﻿using System.Windows.Forms;
 
 namespace ABT.Test.Exec {
-    public abstract partial class TestExec : Form {
+    public partial class TestExec : Form {
         /// <summary>
         /// Required designer variable.
         /// </summary>

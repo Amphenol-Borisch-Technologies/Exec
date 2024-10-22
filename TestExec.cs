@@ -22,6 +22,8 @@ using Microsoft.WindowsAPICodePack.Dialogs;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using Windows.Devices.Enumeration;
 using Windows.Devices.PointOfService;
+using ABT.Test.Exec.AppConfig;
+using ABT.Test.Exec.Logging;
 
 // NOTE:  Recommend using Microsoft's Visual Studio Code to develop/debug TestPlan based closed source/proprietary projects:
 //        - Visual Studio Code is a co$t free, open-source Integrated Development Environment entirely suitable for textual C# development, like TestPlan.
@@ -126,7 +128,7 @@ namespace ABT.Test.Exec {
     ///        inside the TestExec.MeasurementsRun() loop.
     /// </para>
     /// </summary>
-    public abstract partial class TestExec : Form {
+    public partial class TestExec : Form {
         public static readonly String ConfigurationTestExec = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\TestExec.config.xml";
         public const String MutexTestPlanName = "MutexTestPlan";
         public static Mutex MutexTestPlan = null;
@@ -260,12 +262,12 @@ namespace ABT.Test.Exec {
             }
         }
 
-        public virtual void Initialize() {
+        public void Initialize() {
             if (ConfigUUT.Simulate) return;
             foreach (KeyValuePair<String, Object> kvp in Instruments) ((IInstrumentDrivers)kvp.Value).Reinitialize();
         }
 
-        public virtual Boolean Initialized() {
+        public Boolean Initialized() {
             if (ConfigUUT.Simulate) return true;
             return false;
         }
@@ -632,7 +634,7 @@ namespace ABT.Test.Exec {
             }
         }
 
-        protected abstract Task<String> MeasurementRun(String measurementID);
+        protected Task<String> MeasurementRun(String measurementID);
 
         private void MeasurementsPostRun() {
             Initialize();

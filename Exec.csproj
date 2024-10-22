@@ -62,7 +62,8 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>ABT.Test.Exec.TestExecutive</StartupObject>
+    <StartupObject>
+    </StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AppConfig\AppConfigInstruments.cs" />
@@ -107,6 +108,7 @@
     <Compile Include="AppConfig\SelectTests.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="TestExecutive.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="AppConfig\SelectTests.resx">
@@ -244,6 +246,12 @@
     <PackageReference Include="WindowsAPICodePack">
       <Version>8.0.4</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Lib\Lib\Lib.csproj">
+      <Project>{24d5e99e-185c-4507-81f0-132d8cb8164e}</Project>
+      <Name>Lib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

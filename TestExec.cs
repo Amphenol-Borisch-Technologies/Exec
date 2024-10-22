@@ -24,6 +24,7 @@ using Windows.Devices.Enumeration;
 using Windows.Devices.PointOfService;
 using ABT.Test.Exec.AppConfig;
 using ABT.Test.Exec.Logging;
+using ABT.Test.Lib.InstrumentDrivers;
 
 // NOTE:  Recommend using Microsoft's Visual Studio Code to develop/debug TestPlan based closed source/proprietary projects:
 //        - Visual Studio Code is a co$t free, open-source Integrated Development Environment entirely suitable for textual C# development, like TestPlan.
@@ -151,7 +152,7 @@ namespace ABT.Test.Exec {
         private readonly System.Timers.Timer _statusTime = new System.Timers.Timer(10000);
         private String TestPlanFolder;
 
-        protected TestExec(Icon icon) {
+        public TestExec(Icon icon) {
             InitializeComponent();
             Icon = icon;
             // NOTE:  https://stackoverflow.com/questions/40933304/how-to-create-an-icon-for-visual-studio-with-just-mspaint-and-visual-studio
@@ -264,7 +265,7 @@ namespace ABT.Test.Exec {
 
         public void Initialize() {
             if (ConfigUUT.Simulate) return;
-            foreach (KeyValuePair<String, Object> kvp in Instruments) ((IInstrumentDrivers)kvp.Value).Reinitialize();
+            foreach (KeyValuePair<String, Object> kvp in Instruments) ((IInstruments)kvp.Value).ReInitialize();
         }
 
         public Boolean Initialized() {
@@ -634,7 +635,15 @@ namespace ABT.Test.Exec {
             }
         }
 
-        protected Task<String> MeasurementRun(String measurementID);
+        async Task<String> MeasurementRun(String measurementID) {
+            Type type = Type.GetType("ABT.Test.UUT.TestOperations.TestMeasurements");
+            // NOTE:  Will only seek invocable measurement methods in class TestMeasurements that are defined as TestMeasurement IDs in App.config & and are part of a Group.
+            MethodInfo methodInfo = type.GetMethod(MeasurementIDPresent, BindingFlags.Static | BindingFlags.NonPublic);
+            // NOTE:  Invocable measurement methods in class TestMeasurements, defined as TestMeasurement IDs in App.config, must have signatures identical to "internal static String MethodName()",
+            // or "private static String MethodName()", though the latter are discouraged for consistency.
+            Object task = await Task.Run(() => methodInfo.Invoke(null, null));
+            return (String)task;
+        }
 
         private void MeasurementsPostRun() {
             Initialize();

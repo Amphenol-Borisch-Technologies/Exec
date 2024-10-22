@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.DirectoryServices.AccountManagement;
 using System.Drawing;
@@ -23,9 +22,6 @@ using Microsoft.WindowsAPICodePack.Dialogs;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using Windows.Devices.Enumeration;
 using Windows.Devices.PointOfService;
-using ABT.Test.Exec.AppConfig;
-using ABT.Test.Exec.Logging;
-using ABT.Test.Lib.InstrumentDrivers;
 
 // NOTE:  Recommend using Microsoft's Visual Studio Code to develop/debug TestPlan based closed source/proprietary projects:
 //        - Visual Studio Code is a co$t free, open-source Integrated Development Environment entirely suitable for textual C# development, like TestPlan.
@@ -72,27 +68,6 @@ using ABT.Test.Lib.InstrumentDrivers;
 //        - FYI, synchronizing with TestPlan's repository doesn't error out, as it doesn't utilize a Git server.
 
 namespace ABT.Test.Exec {
-    internal class TestExecutive {
-        [STAThread]
-        static void Main() {
-            TestExec.MutexTestPlan = new Mutex(true, TestExec.MutexTestPlanName, out Boolean onlyInstance);
-            if (!onlyInstance) {
-                _ = MessageBox.Show($"Already have one executing instance of a TestPlan.{Environment.NewLine}{Environment.NewLine}" +
-                    $"Cannot have two, as both would control system instruments simultaneously.", "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            GC.KeepAlive(TestExec.MutexTestPlan);
-
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            try { Application.Run(new TestExec(Properties.Resources.Amphenol)); }
-            catch (Exception e) {
-                TestExec.ErrorMessage(e.ToString());
-                TestExec.ErrorMessage(e);
-            }
-        }
-    }
-
     /// <remarks>
     ///  <b>References:</b>
     /// <item>
@@ -151,7 +126,7 @@ namespace ABT.Test.Exec {
     ///        inside the TestExec.MeasurementsRun() loop.
     /// </para>
     /// </summary>
-    public partial class TestExec : Form {
+    public abstract partial class TestExec : Form {
         public static readonly String ConfigurationTestExec = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\TestExec.config.xml";
         public const String MutexTestPlanName = "MutexTestPlan";
         public static Mutex MutexTestPlan = null;
@@ -174,7 +149,7 @@ namespace ABT.Test.Exec {
         private readonly System.Timers.Timer _statusTime = new System.Timers.Timer(10000);
         private String TestPlanFolder;
 
-        public TestExec(Icon icon) {
+        protected TestExec(Icon icon) {
             InitializeComponent();
             Icon = icon;
             // NOTE:  https://stackoverflow.com/questions/40933304/how-to-create-an-icon-for-visual-studio-with-just-mspaint-and-visual-studio
@@ -287,16 +262,17 @@ namespace ABT.Test.Exec {
 
         public virtual void Initialize() {
             if (ConfigUUT.Simulate) return;
-            foreach (KeyValuePair<String, Object> kvp in Instruments) ((IInstruments)kvp.Value).ReInitialize();
+            foreach (KeyValuePair<String, Object> kvp in Instruments) ((IInstrumentDrivers)kvp.Value).Reinitialize();
         }
 
         public virtual Boolean Initialized() {
             if (ConfigUUT.Simulate) return true;
-            // TODO:
             return false;
         }
 
         private void InvalidPathError(String InvalidPath) { _ = MessageBox.Show(ActiveForm, $"Path {InvalidPath} invalid.", "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+
+        public static String NotImplementedMessageEnum(Type enumType) { return $"Unimplemented Enum item; switch/case must support all items in enum '{String.Join(",", Enum.GetNames(enumType))}'."; }
 
         private void OpenApp(String CompanyID, String AppID, String Arguments = "") {
             String app = XElement.Load(ConfigurationTestExec).Element("Apps").Element(CompanyID).Element(AppID).Value;
@@ -656,15 +632,7 @@ namespace ABT.Test.Exec {
             }
         }
 
-        private async Task<String> MeasurementRun(String measurementID) {
-            Type type = Type.GetType("ABT.Test.UUT.TestOperations.TestMeasurements");
-            // NOTE:  Will only seek invocable measurement methods in class TestMeasurements that are defined as TestMeasurement IDs in App.config & and are part of a Group.
-            MethodInfo methodInfo = type.GetMethod(MeasurementIDPresent, BindingFlags.Static | BindingFlags.NonPublic);
-            // NOTE:  Invocable measurement methods in class TestMeasurements, defined as TestMeasurement IDs in App.config, must have signatures identical to "internal static String MethodName()",
-            // or "private static String MethodName()", though the latter are discouraged for consistency.
-            Object task = await Task.Run(() => methodInfo.Invoke(null, null));
-            return (String)task;
-        }
+        protected abstract Task<String> MeasurementRun(String measurementID);
 
         private void MeasurementsPostRun() {
             Initialize();
